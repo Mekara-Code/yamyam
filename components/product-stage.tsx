@@ -41,7 +41,7 @@ export function ProductStage({ progress, variant = "hero", className = "" }: Pro
         return;
       }
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setClearColor(0xffffff, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -105,7 +105,7 @@ export function ProductStage({ progress, variant = "hero", className = "" }: Pro
           : PERSIAN_FRONT + 0.1;
         const rotationZ = variant === "story"
           ? THREE.MathUtils.lerp(tilts[part], tilts[part + 1], blend)
-          : -0.13;
+          : -0.045;
         const translation = variant === "story"
           ? THREE.MathUtils.lerp(shifts[part], shifts[part + 1], blend)
           : 0;
@@ -130,6 +130,11 @@ export function ProductStage({ progress, variant = "hero", className = "" }: Pro
         if (!width || !height) return;
         renderer.setSize(width, height, false);
         camera.aspect = width / height;
+        if (variant === "hero") {
+          // Preserve the complete silhouette when the centred portrait narrows on phones.
+          camera.position.z = Math.max(5.6, 2.8 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
+          camera.lookAt(0, 0, 0);
+        }
         camera.updateProjectionMatrix();
         draw();
       }
@@ -156,7 +161,7 @@ export function ProductStage({ progress, variant = "hero", className = "" }: Pro
       host.addEventListener("pointermove", pointerMove);
       host.addEventListener("pointerleave", pointerLeave);
 
-      pivot.rotation.set(-0.065, PERSIAN_FRONT + 0.1, -0.13);
+      pivot.rotation.set(-0.065, PERSIAN_FRONT + 0.1, variant === "hero" ? -0.045 : -0.13);
       resize();
 
       new GLTFLoader().load("/models/yam-yam.glb", (gltf) => {
@@ -165,6 +170,15 @@ export function ProductStage({ progress, variant = "hero", className = "" }: Pro
           return;
         }
         model = gltf.scene;
+        model.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            for (const material of materials) {
+              const map = (material as InstanceType<typeof THREE.MeshStandardMaterial>).map;
+              if (map) map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+            }
+          }
+        });
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const dimensions = box.getSize(new THREE.Vector3());

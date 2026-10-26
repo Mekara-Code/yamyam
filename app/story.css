@@ -270,3 +270,54 @@
   .story-copy-layers { position: static; width: 100%; }
   .story-chapter { position: static; opacity: 1 !important; transform: none !important; clip-path: none !important; margin-bottom: 45px; }
 }
+
+/* The can is the centrepiece; both headline lines sit on the layer behind it. */
+.centered-hero { isolation: isolate; }
+.centered-hero-scene { position: relative; height: clamp(710px, calc(100svh - 154px), 950px); isolation: isolate; }
+.centered-hero-kicker { position: absolute; top: 28px; inset-inline: 0; margin: 0; justify-content: center; z-index: 4; font-size: 12px; }
+.centered-hero-title { position: absolute; inset: 0; z-index: 1; margin: 0; pointer-events: none; text-align: center; font-weight: 900; line-height: 1.25; letter-spacing: -.045em; }
+.centered-hero-title > span { position: absolute; left: 50%; display: block; width: max-content; max-width: 100%; transform: translateX(-50%); white-space: nowrap; }
+.centered-title-top { top: 11%; color: var(--ink); font-size: clamp(72px, 8.2vw, 126px); }
+.centered-title-bottom { top: 60%; color: var(--green); font-size: clamp(110px, 13.8vw, 210px); }
+.centered-product { position: absolute; z-index: 3; top: 65px; bottom: 97px; left: 50%; width: min(640px, 57vw); margin-left: calc(min(640px, 57vw) / -2); }
+.centered-product > .product-stage { height: 100%; }
+.centered-product .product-stage-fallback { height: 100%; transform: rotate(-2.6deg); }
+.centered-product-spec { position: absolute; z-index: 4; right: 4.5%; top: 48%; display: flex; align-items: center; gap: 11px; color: var(--green); padding: 13px 0; border-top: 1px solid var(--line); }
+.centered-product-spec strong { font-size: 42px; font-weight: 650; line-height: 1; letter-spacing: -2px; }
+.centered-product-spec > span { font-size: 11px; line-height: 1.8; }
+.centered-side-caption { position: absolute; z-index: 4; left: 2%; top: 43%; writing-mode: vertical-rl; transform: rotate(180deg); font: 9px/1.4 Arial,sans-serif; letter-spacing: 2px; color: var(--muted); }
+.centered-hero-actions { position: absolute; z-index: 5; bottom: 14px; inset-inline: 0; display: flex; align-items: center; justify-content: center; gap: 32px; }
+.centered-hero-actions .hero-story-link { margin: 0; font-size: 12px; }
+.centered-hero .hero-footnote { position: relative; z-index: 5; }
+
+@media(min-width:1700px) {
+  .centered-title-top { font-size: 140px; }
+  .centered-title-bottom { font-size: 220px; }
+  .centered-product { width: 700px; margin-left: -350px; }
+}
+@media(max-width:1100px) {
+  .centered-hero-scene { height: clamp(690px, calc(100svh - 148px), 900px); }
+  .centered-title-top { font-size: 8.3vw; top: 13%; }
+  .centered-title-bottom { font-size: 13.7vw; top: 67%; }
+  .centered-product { width: 590px; max-width: 70vw; margin-left: max(-295px, -35vw); top: 65px; bottom: 98px; }
+  .centered-product-spec { right: 2%; }
+}
+@media(max-width:760px) {
+  .centered-hero-scene { height: clamp(650px, calc(100svh - 123px), 850px); width: calc(100% - 32px); }
+  .centered-hero-kicker { top: 22px; font-size: 10px; }
+  .centered-title-top { top: 11%; font-size: clamp(28px, 8.15vw, 58px); letter-spacing: -.035em; }
+  .centered-title-bottom { top: 73%; font-size: clamp(40px, 12.8vw, 88px); letter-spacing: -.045em; }
+  .centered-product { top: 88px; bottom: 140px; width: 100%; max-width: none; left: 0; margin-left: 0; }
+  .centered-product-spec { top: 48%; right: 0; gap: 6px; border: 0; }
+  .centered-product-spec strong { font-size: 25px; letter-spacing: -1px; }
+  .centered-product-spec > span { font-size: 9px; }
+  .centered-side-caption { left: 0; top: 45%; font-size: 7px; letter-spacing: 1px; }
+  .centered-product-spec, .centered-side-caption { display: none; }
+  .centered-hero-actions { bottom: 5px; flex-direction: column; gap: 4px; }
+  .centered-hero-actions .hero-cta { min-width: 204px; min-height: 49px; }
+  .centered-hero-actions .hero-story-link { min-height: 37px; font-size: 11px; }
+}
+@media(max-width:760px) and (max-height:620px) and (orientation:landscape) {
+  .centered-hero-scene { height: 650px; }
+  .centered-product { width: 65%; left: 17.5%; }
+}

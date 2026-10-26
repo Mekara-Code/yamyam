@@ -136,25 +136,22 @@ export function StoryContent() {
   const reduced = !!useReducedMotion();
   return (
     <>
-      <section className="brand-hero" id="home" aria-labelledby="hero-title">
-        <div className="container hero-grid">
-          <motion.div className="hero-copy" initial={reduced ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}>
-            <p className="brand-eyebrow"><span className="eyebrow-dot" />یام‌یام، همراهِ لحظه‌های خوشمزه</p>
-            <h1 id="hero-title">طعمِ خوب،<br />از <span className="hero-inline-word">همین‌جا<svg viewBox="0 0 310 18" fill="none" aria-hidden="true"><path d="M5 12C75 2 209 1 304 8M18 16C110 8 224 9 286 13" /></svg></span><br /><span className="hero-title-last">شروع می‌شود.</span></h1>
-            <p className="hero-description">برای غذاهایی که با عشق می‌پزید،<br />و مزه‌هایی که کنارِ هم می‌سازید.</p>
-            <a className="button button-green hero-cta" href="#shop">وارد فروشگاه شوید <ArrowUpLeft size={21} aria-hidden="true" /></a>
-            <a className="hero-story-link" href="#story">داستانِ یام‌یام را ورق بزنید <ArrowDown size={16} aria-hidden="true" /></a>
-          </motion.div>
-
-          <motion.div className="hero-visual" initial={reduced ? false : { opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
-            <div className="hero-visual-word" aria-hidden="true" lang="en" dir="ltr">YAM<br /><span>YAM</span></div>
-            <div className="hero-orbit" aria-hidden="true" />
-            <div className="hero-small-branch" aria-hidden="true"><Image src="/images/branch.webp" alt="" width={1200} height={675} sizes="(max-width: 760px) 150px, 210px" /></div>
+      <section className="brand-hero centered-hero" id="home" aria-labelledby="hero-title">
+        <div className="container centered-hero-scene">
+          <p className="brand-eyebrow centered-hero-kicker"><span className="eyebrow-dot" />یام‌یام، همراهِ لحظه‌های خوشمزه</p>
+          <motion.h1 id="hero-title" className="centered-hero-title" initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}>
+            <span className="centered-title-top">طعمِ خوب، از همین‌جا</span>
+            <span className="centered-title-bottom">شروع می‌شود.</span>
+          </motion.h1>
+          <motion.div className="centered-product" initial={reduced ? false : { opacity: 0, y: 30, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}>
             <ProductStage />
-            <div className="hero-weight"><span>۸۰۰</span><span>گرم<br />خوش‌سلیقگی</span></div>
-            <p className="hero-vertical-label" lang="en" dir="ltr">TOMATO PASTE / MADE FOR YOUR TABLE</p>
-            <div className="hero-shadow" aria-hidden="true" />
           </motion.div>
+          <div className="centered-product-spec"><strong>۸۰۰</strong><span>گرم<br />یام‌یام</span></div>
+          <p className="centered-side-caption" lang="en" dir="ltr">A LITTLE CAN. A BIG TASTE.</p>
+          <div className="centered-hero-actions">
+            <a className="button button-green hero-cta" href="#shop">وارد فروشگاه شوید <ArrowUpLeft size={21} aria-hidden="true" /></a>
+            <a className="hero-story-link" href="#story">قصه را ورق بزنید <ArrowDown size={16} aria-hidden="true" /></a>
+          </div>
         </div>
 
         <div className="container hero-footnote">
