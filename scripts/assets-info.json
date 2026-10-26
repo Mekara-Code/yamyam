@@ -1,0 +1,121 @@
+{
+  "sourceModel": "D:\\Cyrus the Great\\yam-yam-3d\\models\\yam-yam-can.glb",
+  "orientation": {
+    "up": "+Y",
+    "englishFront": "+Z",
+    "englishAtlasU": 0.5,
+    "persianAtlasU": 0.872770967996017,
+    "persianRotationYRadians": -2.3421890690556864
+  },
+  "models": [
+    {
+      "path": "/models/yam-yam.glb",
+      "bytes": 2068932,
+      "meshes": 9,
+      "materials": 5,
+      "vertices": 38442,
+      "triangles": 72960,
+      "textureSize": [
+        2048,
+        682
+      ],
+      "boundsMetres": {
+        "min": [
+          -0.054349999874830246,
+          0.0027000000700354576,
+          -0.054349999874830246
+        ],
+        "max": [
+          0.054349999874830246,
+          0.12574000656604767,
+          0.054349999874830246
+        ]
+      },
+      "validation": {
+        "validator": "Khronos glTF Validator",
+        "errors": 0,
+        "warnings": 0,
+        "infos": [
+          {
+            "code": "IMAGE_NPOT_DIMENSIONS",
+            "message": "Image has non-power-of-two dimensions: 2048x682."
+          }
+        ]
+      }
+    },
+    {
+      "path": "/models/yam-yam-shelf.glb",
+      "bytes": 249440,
+      "meshes": 9,
+      "materials": 5,
+      "vertices": 2989,
+      "triangles": 4608,
+      "textureSize": [
+        1024,
+        341
+      ],
+      "boundsMetres": {
+        "min": [
+          -0.054349999874830246,
+          0.0027000000700354576,
+          -0.054349999874830246
+        ],
+        "max": [
+          0.054349999874830246,
+          0.12574000656604767,
+          0.054349999874830246
+        ]
+      },
+      "validation": {
+        "validator": "Khronos glTF Validator",
+        "errors": 0,
+        "warnings": 0,
+        "infos": [
+          {
+            "code": "IMAGE_NPOT_DIMENSIONS",
+            "message": "Image has non-power-of-two dimensions: 1024x341."
+          }
+        ]
+      }
+    }
+  ],
+  "images": [
+    {
+      "path": "/images/can-persian.webp",
+      "bytes": 110890,
+      "size": [
+        900,
+        1012
+      ],
+      "alpha": true
+    },
+    {
+      "path": "/images/can-english.webp",
+      "bytes": 119464,
+      "size": [
+        900,
+        1012
+      ],
+      "alpha": true
+    },
+    {
+      "path": "/images/can-thumb.webp",
+      "bytes": 18870,
+      "size": [
+        240,
+        270
+      ],
+      "alpha": true
+    },
+    {
+      "path": "/images/branch.webp",
+      "bytes": 234180,
+      "size": [
+        1200,
+        675
+      ],
+      "alpha": true
+    }
+  ],
+  "provenance": "Supplied photographic renders and original model only. No generated or retouched image content."
+}

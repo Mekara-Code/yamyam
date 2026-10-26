@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+dist/
+outputs/
+.sites-runtime/
+*.tsbuildinfo
+.env*
+*.log

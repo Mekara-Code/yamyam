@@ -1,0 +1,94 @@
+.frame {
+  position: relative;
+  height: min(740px, 62vw);
+  min-height: 540px;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  background: #f4f6f0;
+  border: 1px solid #e4e9df;
+  border-radius: 28px;
+  color: #173f2f;
+}
+
+.canvas { display: block; width: 100%; height: 100%; opacity: 0; outline: none; cursor: grab; touch-action: pan-y; transition: opacity 700ms ease; }
+.canvas.visible { opacity: 1; }
+.canvas:focus-visible { outline: 2px solid #799343; outline-offset: -5px; border-radius: 28px; }
+.topBar { position: absolute; inset: 24px 26px auto; display: flex; justify-content: space-between; align-items: center; pointer-events: none; gap: 12px; }
+.live { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 550; letter-spacing: -.1px; }
+.live > span:first-child { height: 6px; width: 6px; background: #426a36; border-radius: 50%; box-shadow: 0 0 0 4px #426a360c; }
+.topActions { display: flex; align-items: center; gap: 9px; pointer-events: auto; }
+.reset, .cartCount, .moveButton, .addButton { font: inherit; color: inherit; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.reset { display: grid; place-items: center; width: 39px; height: 39px; background: #ffffffb3; border: 1px solid #dce3d8; border-radius: 50%; backdrop-filter: blur(12px); transition: background .2s; }
+.reset:hover { background: white; }
+.reset:disabled { opacity: .4; cursor: default; }
+.cartCount { display: flex; align-items: center; gap: 9px; min-height: 39px; padding: 6px 14px; border: 1px solid #dce3d8; border-radius: 40px; font-size: 13px; font-weight: 650; background: #ffffffe0; backdrop-filter: blur(12px); }
+.countSuffix { font-weight: 400; }
+.pending { color: #6e7b57; font-size: 11px; padding-right: 7px; border-right: 1px solid #dce3d8; }
+.pickHint { position: absolute; top: 29%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; padding: 8px 13px; border: 1px solid #dbe4d4; border-radius: 40px; background: #ffffffc9; box-shadow: 0 3px 15px #153a2510; font-size: 11px; pointer-events: none; white-space: nowrap; }
+.pickHint svg:last-child { color: #74924a; }
+.bottomBar { position: absolute; bottom: 25px; left: 26px; right: 26px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; pointer-events: none; }
+.controls { display: flex; align-items: center; gap: 13px; pointer-events: auto; }
+.movement { display: grid; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(2, 32px); gap: 4px; }
+.moveButton { display: grid; place-items: center; background: #ffffffce; border: 1px solid #d6dfd1; border-radius: 8px; backdrop-filter: blur(10px); user-select: none; touch-action: none; transition: background .15s, transform .15s; }
+.moveButton:hover { background: white; }
+.moveButton:active { background: #dae7c8; transform: scale(.95); }
+.moveButton:disabled { opacity: .35; cursor: default; }
+.forward { grid-column: 2; grid-row: 1; }
+.left { grid-column: 1; grid-row: 2; }
+.backward { grid-column: 2; grid-row: 2; }
+.right { grid-column: 3; grid-row: 2; }
+.controlsText { display: flex; flex-direction: column; gap: 5px; padding-top: 22px; text-align: right; }
+.controlsText > span { font-size: 12px; font-weight: 650; }
+.controlsText > small { color: #7b8573; font-size: 10px; font-weight: 400; }
+.addArea { display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: auto; }
+.addCaption { font-size: 10px; color: #7d876f; }
+.addButton { min-height: 50px; padding: 0 22px; display: flex; align-items: center; gap: 27px; border-radius: 40px; color: #fafdf3; background: #173f2f; font-size: 13px; font-weight: 550; box-shadow: 0 7px 14px #123b2214; transition: background .2s, transform .2s; }
+.addButton:hover:not(:disabled) { background: #2f5739; transform: translateY(-2px); }
+.addButton:active:not(:disabled) { transform: translateY(0); }
+.addButton:disabled { opacity: .6; cursor: default; }
+.reset:focus-visible, .cartCount:focus-visible, .moveButton:focus-visible, .addButton:focus-visible { outline: 2px solid #799343; outline-offset: 4px; }
+.poster { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #fff 0%, #f4f6f0 65%); }
+.posterCan { position: relative; z-index: 1; object-fit: contain; width: 200px; height: 330px; transform: rotate(-9deg) translateY(-8px); mix-blend-mode: multiply; }
+.posterShadow { position: absolute; width: 200px; height: 22px; top: 72%; background: #244b2520; filter: blur(13px); border-radius: 50%; }
+.loading { position: absolute; top: 78%; display: flex; align-items: center; gap: 9px; font-size: 12px; color: #6d7b60; }
+.loading svg { animation: spin 1.5s linear infinite; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .controlsText { display: none; }
+  .frame { min-height: 540px; height: 69vw; }
+  .pickHint { top: 26%; }
+}
+
+@media (max-width: 600px) {
+  .frame { min-height: 500px; height: 540px; max-height: 75svh; border-radius: 19px; }
+  .topBar { inset: 18px 15px auto; gap: 6px; }
+  .live { gap: 6px; font-size: 10px; }
+  .cartCount { gap: 6px; font-size: 11px; min-height: 35px; padding: 5px 10px; }
+  .cartCount svg { width: 16px; }
+  .reset { height: 35px; width: 35px; }
+  .topActions { gap: 6px; }
+  .bottomBar { bottom: 19px; left: 15px; right: 15px; gap: 12px; }
+  .movement { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 3px; }
+  .moveButton { border-radius: 7px; }
+  .addButton { font-size: 10.5px; min-height: 46px; width: 145px; padding: 0 10px; gap: 8px; justify-content: space-between; }
+  .addCaption { font-size: 9px; }
+  .addArea { gap: 8px; }
+  .pickHint { top: 27%; padding: 6px 10px; font-size: 10px; gap: 5px; }
+  .pickHint svg { width: 13px; }
+  .countSuffix { display: none; }
+  .pending { padding-right: 5px; }
+}
+
+@media (max-width: 360px) {
+  .movement { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(2, 38px); }
+  .bottomBar { gap: 6px; }
+  .addButton { width: 128px; font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas, .moveButton, .addButton { transition: none; }
+  .loading svg { animation: none; }
+}

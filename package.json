@@ -1,0 +1,27 @@
+{
+  "name": "yamyam",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3003",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3003",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "latest",
+    "react-dom": "latest",
+    "three": "latest",
+    "framer-motion": "latest",
+    "lucide-react": "latest",
+    "@fontsource-variable/vazirmatn": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.19.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/three": "latest"
+  }
+}

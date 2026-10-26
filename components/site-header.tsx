@@ -1,0 +1,9 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {Menu,ShoppingBasket,X,ArrowUpLeft} from 'lucide-react';
+import {useCart} from './cart-provider';
+export function Wordmark(){return <span className="wordmark" dir="ltr">yamyam<span>.</span><svg width="21" height="14" viewBox="0 0 24 16" fill="none" aria-hidden="true"><path d="M12 14C4 13 2 6 2 2c7 0 12 4 10 12Zm0 0C11 5 17 2 22 2c0 7-4 12-10 12Z" fill="currentColor"/></svg></span>}
+export function SiteHeader(){const{quantity,openCart}=useCart();const[menu,setMenu]=useState(false);const toggle=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{if(!menu)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenu(false);toggle.current?.focus()}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[menu]);
+ return <header className="site-header"><div className="container header-row"><a href="#home" className="brand-link" aria-label="یام‌یام، ابتدای صفحه"><Wordmark/></a><nav id="main-navigation" className={menu?'navigation is-open':'navigation'} aria-label="ناوبری اصلی"><a href="#story" onClick={()=>setMenu(false)}>قصهٔ یام‌یام</a><a href="#shop" onClick={()=>setMenu(false)}>فروشگاه تعاملی<ArrowUpLeft size={14}/></a><a href="#about" onClick={()=>setMenu(false)}>نزدیک‌تر ببین</a><span className="nav-small">یک طعم، کلی قصه.</span></nav><div className="header-actions"><button className="cart-trigger" onClick={openCart} aria-label={`سبد من، ${quantity} قوطی`}><ShoppingBasket size={21}/><span>سبدِ من</span><b>{quantity.toLocaleString('fa-IR')}</b></button><button ref={toggle} className="menu-toggle" aria-controls="main-navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)} aria-label={menu?'بستن منو':'بازکردن منو'}>{menu?<X size={22}/>:<Menu size={22}/>}</button></div></div></header>
+}
