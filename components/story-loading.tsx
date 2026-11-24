@@ -61,8 +61,8 @@ export function StoryLoading({
         <div className={styles.logo} ref={logoRef}>
           <Image src="/images/yamyam-logo.png" width={228} height={228} alt="" loading="eager" fetchPriority="high" />
         </div>
-        <div className={styles.status} role="progressbar" aria-label="آماده‌سازی ویدیو" aria-valuenow={percent || undefined}>
-          <span>در حال آماده‌سازی ویدیو</span>
+        <div className={styles.status} role="progressbar" aria-label="در حال آماده‌سازی" aria-valuenow={percent || undefined}>
+          <span>در حال آماده‌سازی</span>
           {percent > 0 && <span className={styles.percent}>{progress.toLocaleString("fa-IR", { style: "percent" })}</span>}
         </div>
       </div>
