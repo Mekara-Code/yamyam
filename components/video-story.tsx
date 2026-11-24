@@ -7,6 +7,7 @@ import { ArrowDown, ArrowDownLeft } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
+import { createPortraitFrames } from "./portrait-frames";
 import styles from "./video-story.module.css";
 
 const portraitQuery = "(max-width: 760px) and (orientation: portrait)";
@@ -15,10 +16,12 @@ const portraitVideo = "/videos/yamyam-scroll-portrait";
 const videoEnd = 0.95;
 const spiralCue = [0.367, 0.415, 0.487, 0.54];
 const spiralStop = videoEnd * ((spiralCue[1] + spiralCue[2]) / 2);
+const storyMediaLabel = "پاشش رب و گوجه‌ها دور قوطی یام‌یام می‌چرخد و رب داخل قوطی می‌ریزد.";
 
 export function VideoStory() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const triggerRef = useRef<ScrollTrigger | null>(null);
   const scrollTween = useRef<gsap.core.Tween | null>(null);
   const initialAnchorHandled = useRef(false);
@@ -64,10 +67,11 @@ export function VideoStory() {
     };
 
     const checkError = () => {
-      if (player.error && player.error.code !== player.error.MEDIA_ERR_ABORTED) setFailed(true);
+      if (sectionRef.current?.dataset.renderer !== "frames" &&
+        player.error && player.error.code !== player.error.MEDIA_ERR_ABORTED) setFailed(true);
     };
 
-    const readinessEvents = ["loadeddata", "canplay", "seeked", "emptied"];
+    const readinessEvents = ["loadeddata", "canplay", "emptied"];
 
     const selectSource = () => {
       const trigger = triggerRef.current;
@@ -105,18 +109,39 @@ export function VideoStory() {
     const video = player;
 
     gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+    ScrollTrigger.config({ ignoreMobileResize: true });
     const media = gsap.matchMedia();
 
-    media.add("(prefers-reduced-motion: no-preference)", () => {
+    media.add({
+      motion: "(prefers-reduced-motion: no-preference)",
+      portrait: portraitQuery,
+      touch: "(pointer: coarse)",
+    }, ({ conditions }) => {
+      if (!conditions?.motion) return;
+
       const playhead = { progress: 0 };
       let frameRequest: number | null = null;
       let fps = 30;
       let lastFrame = 0;
+      const canvas = canvasRef.current;
+      let frames = conditions.portrait && canvas
+        ? createPortraitFrames(canvas, (position) => renderedProgress.set(position), useVideoFallback)
+        : null;
 
       section.dataset.scrub = "true";
       setScrubEnabled(true);
       video.pause();
-      video.preload = "auto";
+      video.preload = frames ? "none" : "auto";
+      if (frames) section.dataset.renderer = "frames";
+
+      function useVideoFallback() {
+        frames?.dispose();
+        frames = null;
+        delete section?.dataset.renderer;
+        video.preload = "auto";
+        if (video.error) video.load();
+        updateSourceTiming();
+      }
 
       function seekFrame() {
         frameRequest = null;
@@ -134,12 +159,14 @@ export function VideoStory() {
       }
 
       function updateSourceTiming() {
+        if (frames) return;
         fps = video.videoHeight > video.videoWidth ? 24 : 30;
         lastFrame = Number.isFinite(video.duration) ? Math.max(0, Math.round(video.duration * fps) - 1) : 0;
         queueSeek();
       }
 
       function onSeeked() {
+        if (frames) return;
         if (lastFrame) renderedProgress.set(Math.min(1, video.currentTime * fps / lastFrame));
         // A busy decoder uses the latest scroll position once the previous seek finishes.
         queueSeek();
@@ -153,12 +180,19 @@ export function VideoStory() {
         ease: "none",
         onUpdate: () => {
           progress.set(playhead.progress);
-          queueSeek();
+          if (frames) frames.render(playhead.progress / videoEnd);
+          else queueSeek();
         },
-        scrollTrigger: { trigger: section, start: "top top", end: "bottom bottom", scrub: 0.22 },
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: conditions.portrait || conditions.touch ? true : 0.22,
+        },
       });
 
       triggerRef.current = scrub.scrollTrigger ?? null;
+      frames?.render(playhead.progress / videoEnd);
       updateSourceTiming();
       onSeeked();
 
@@ -173,7 +207,9 @@ export function VideoStory() {
         video.removeEventListener("loadedmetadata", updateSourceTiming);
         video.removeEventListener("seeked", onSeeked);
         if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+        frames?.dispose();
         video.preload = "metadata";
+        delete section.dataset.renderer;
         delete section.dataset.scrub;
         triggerRef.current = null;
         progress.set(0);
@@ -231,11 +267,12 @@ export function VideoStory() {
               playsInline
               controls={!scrubEnabled && !failed}
               data-failed={failed ? "" : undefined}
-              aria-label="پاشش رب و گوجه‌ها دور قوطی یام‌یام می‌چرخد و رب داخل قوطی می‌ریزد."
+              aria-label={storyMediaLabel}
             >
               <source src={`${portraitVideo}.mp4`} type="video/mp4" media={portraitQuery} />
               <source src={`${desktopVideo}.mp4`} type="video/mp4" />
             </video>
+            <canvas ref={canvasRef} role="img" aria-label={storyMediaLabel} />
           </div>
 
           <motion.div className={styles.copy} style={{ opacity: copyOpacity, y: copyOffset, visibility: copyVisibility }}>
