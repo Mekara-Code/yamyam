@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { motion, useMotionValue, useMotionValueEvent, useTransform, type MotionValue } from "framer-motion";
 import { ArrowDown, ArrowDownLeft } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -12,11 +12,30 @@ import { StoryLoading } from "./story-loading";
 import { desktopVideo, portraitQuery, portraitVideo, releaseStorySource, useStorySource } from "./use-story-source";
 import styles from "./video-story.module.css";
 
-const playbackTimeout = 12_000;
 const videoEnd = 0.95;
-const spiralCue = [0.367, 0.415, 0.487, 0.54];
-const spiralStop = videoEnd * ((spiralCue[1] + spiralCue[2]) / 2);
+const playbackTimeout = 12_000;
 const storyMediaLabel = "پاشش رب و گوجه‌ها دور قوطی یام‌یام می‌چرخد و رب داخل قوطی می‌ریزد.";
+
+// Positions refer to the frame actually on screen, including the portrait atlas.
+const spiralStart = 0.365;
+const spiralHold = 0.451;
+const spiralEnd = 0.514;
+const productStart = 0.813;
+const finalHold = 0.942;
+
+type Cue = [start: number, settle: number] | [start: number, settle: number, leave: number, end: number];
+
+function useReveal(frame: MotionValue<number>, cue: Cue, rise = 30) {
+  const opacity = useTransform(frame, cue, cue.length === 2 ? [0, 1] : [0, 1, 1, 0]);
+  const y = useTransform(frame, cue, cue.length === 2
+    ? [`${rise}%`, "0%"]
+    : [`${rise}%`, "0%", "0%", `-${rise}%`]);
+  const visibility = useTransform(() => {
+    const position = frame.get();
+    return position > cue[0] && (cue[3] === undefined || position < cue[3]) ? "visible" : "hidden";
+  });
+  return { opacity, y, visibility };
+}
 
 export function VideoStory() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -24,6 +43,10 @@ export function VideoStory() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const triggerRef = useRef<ScrollTrigger | null>(null);
   const scrollTween = useRef<gsap.core.Tween | null>(null);
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const spiralButtonRef = useRef<HTMLButtonElement>(null);
+  const productTitleRef = useRef<HTMLHeadingElement>(null);
+  const keyboardDestination = useRef<{ element: HTMLElement; frame: number } | null>(null);
   const initialAnchorHandled = useRef(false);
   const retainedScrollProgress = useRef<number | null>(null);
   const { source, loadingProgress } = useStorySource();
@@ -36,25 +59,37 @@ export function VideoStory() {
 
   const progress = useMotionValue(0);
   const renderedProgress = useMotionValue(0);
-  const copyOffset = useTransform(progress, [0.008, 0.19], ["0svh", "-78svh"], {
-    ease: (value) => value * value,
-  });
-  const copyOpacity = useTransform(progress, [0.135, 0.19], [1, 0]);
-  const copyVisibility = useTransform(() => progress.get() < 0.19 ? "visible" : "hidden");
+  const openingOpacity = useTransform(renderedProgress, [0.108, 0.148], [1, 0]);
+  const openingVisibility = useTransform(() => renderedProgress.get() < 0.148 ? "visible" : "hidden");
+  const openingLineY = useTransform(renderedProgress, [0.071, 0.125], ["0%", "-76%"]);
+  const openingLineOpacity = useTransform(renderedProgress, [0.079, 0.125], [1, 0]);
+  const openingAccentY = useTransform(renderedProgress, [0, 0.054, 0.091, 0.148], ["13%", "0%", "0%", "-67%"]);
+  const openingAccentOpacity = useTransform(renderedProgress, [0.098, 0.148], [1, 0]);
+  const underlineScale = useTransform(renderedProgress, [0, 0.055], [0.16, 1]);
+  const startButtonOpacity = useTransform(renderedProgress, [0.065, 0.107], [1, 0]);
+  const startButtonVisibility = useTransform(() => renderedProgress.get() < 0.107 ? "visible" : "hidden");
 
-  const spiralOpacity = useTransform(renderedProgress, spiralCue, [0, 1, 1, 0]);
-  const spiralOffset = useTransform(renderedProgress, spiralCue, [28, 0, 0, -32]);
-  const spiralVisibility = useTransform(() => {
-    const position = renderedProgress.get();
-    return position > spiralCue[0] && position < spiralCue[3] ? "visible" : "hidden";
-  });
+  const spiralLayer = useReveal(renderedProgress, [spiralStart, 0.39, 0.484, spiralEnd], 0);
+  const spiralLine = useReveal(renderedProgress, [spiralStart, 0.398, 0.486, 0.51]);
+  const spiralAccent = useReveal(renderedProgress, [0.39, 0.418, 0.49, spiralEnd], 42);
+  const continueButton = useReveal(renderedProgress, [0.425, 0.444, 0.477, 0.501], 20);
 
-  const productOpacity = useTransform(renderedProgress, [0.631, 0.722], [0, 1]);
-  const productOffset = useTransform(renderedProgress, [0.631, 0.738], [26, 0]);
-  const productVisibility = useTransform(() => renderedProgress.get() > 0.631 ? "visible" : "hidden");
-  const detailsOpacity = useTransform(renderedProgress, [0.838, 0.928], [0, 1]);
-  const detailsOffset = useTransform(renderedProgress, [0.838, 0.945], [14, 0]);
-  const detailsVisibility = useTransform(() => renderedProgress.get() > 0.838 ? "visible" : "hidden");
+  const productLabel = useReveal(renderedProgress, [productStart, 0.848], 35);
+  const productTitle = useReveal(renderedProgress, [0.849, 0.889]);
+  const productDetails = useReveal(renderedProgress, [0.894, finalHold], 15);
+
+  useMotionValueEvent(renderedProgress, "change", (frame) => {
+    const start = startButtonRef.current;
+    const next = spiralButtonRef.current;
+    if (start) start.inert = frame >= 0.082;
+    if (next) next.inert = frame < 0.437 || frame >= 0.486;
+
+    const destination = keyboardDestination.current;
+    if (destination && frame >= destination.frame) {
+      keyboardDestination.current = null;
+      requestAnimationFrame(() => destination.element.focus({ preventScroll: true }));
+    }
+  });
 
   useLayoutEffect(() => {
     const story = sectionRef.current;
@@ -91,6 +126,7 @@ export function VideoStory() {
 
     function stopScrubbing() {
       scrollTween.current?.kill();
+      keyboardDestination.current = null;
       scrub?.scrollTrigger?.kill();
       scrub?.kill();
       triggerRef.current = null;
@@ -233,11 +269,14 @@ export function VideoStory() {
     };
   }, [source, progress, renderedProgress]);
 
-  function advanceStory(target: number) {
+  function advanceStory(target: number, focus: HTMLElement | null = null) {
     const trigger = triggerRef.current;
     if (!trigger) return;
 
     scrollTween.current?.kill();
+    keyboardDestination.current = focus
+      ? { element: focus, frame: target === 1 ? finalHold : 0.445 }
+      : null;
     const root = document.documentElement;
     const previousBehavior = root.style.scrollBehavior;
     root.style.scrollBehavior = "auto";
@@ -253,7 +292,10 @@ export function VideoStory() {
       duration: gsap.utils.clamp(0.8, 1.35, Math.abs(window.scrollY - destination) / 830),
       ease: "power2.inOut",
       onComplete: restoreScrollBehavior,
-      onInterrupt: restoreScrollBehavior,
+      onInterrupt: () => {
+        keyboardDestination.current = null;
+        restoreScrollBehavior();
+      },
     });
   }
 
@@ -287,40 +329,69 @@ export function VideoStory() {
             <canvas ref={canvasRef} role="img" aria-label={storyMediaLabel} />
           </div>
 
-          <motion.div className={styles.copy} style={{ opacity: copyOpacity, y: copyOffset, visibility: copyVisibility }}>
-            <h1 id="video-story-title">غذا با یام‌یام<br /><em>جان می‌گیرد.</em></h1>
+          <motion.div className={`${styles.caption} ${styles.copy}`}
+            style={scrubEnabled ? { opacity: openingOpacity, visibility: openingVisibility } : undefined}>
+            <h1 className={styles.openingTitle} id="video-story-title">
+              <span className={styles.mask}>
+                <motion.span style={scrubEnabled ? { y: openingLineY, opacity: openingLineOpacity } : undefined}>
+                  غذا با یام‌یام
+                </motion.span>
+              </span>
+              <span className={styles.mask}>
+                <motion.em style={scrubEnabled ? { y: openingAccentY, opacity: openingAccentOpacity } : undefined}>
+                  جان می‌گیرد.
+                </motion.em>
+              </span>
+            </h1>
+            <motion.div className={styles.underline} aria-hidden="true"
+              style={scrubEnabled ? { scaleX: underlineScale, opacity: openingAccentOpacity } : undefined} />
             {scrubEnabled ? (
-              <button className={styles.action} type="button" onClick={() => advanceStory(spiralStop)}>
+              <motion.button ref={startButtonRef} className={styles.action} type="button"
+                style={{ opacity: startButtonOpacity, visibility: startButtonVisibility }}
+                onClick={(event) => advanceStory(videoEnd * spiralHold, event.detail === 0 ? spiralButtonRef.current : null)}>
                 شروع داستان <ArrowDown size={17} aria-hidden="true" />
-              </button>
+              </motion.button>
             ) : (
               <a className={styles.action} href="#about">
                 دربارهٔ محصول <ArrowDownLeft size={17} aria-hidden="true" />
               </a>
             )}
           </motion.div>
-
-          <motion.div className={styles.spiralCaption}
-            style={{ opacity: spiralOpacity, y: spiralOffset, visibility: spiralVisibility }}>
-            <p>غلظتش را <em>ببینید.</em></p>
-            <button className={styles.action} type="button" onClick={() => advanceStory(1)}>
-              ادامهٔ داستان <ArrowDown size={17} aria-hidden="true" />
-            </button>
-          </motion.div>
         </div>
 
-        <motion.section
-          className={styles.product}
-          aria-labelledby="product-title"
-          style={scrubEnabled ? { opacity: productOpacity, y: productOffset, visibility: productVisibility } : undefined}
-        >
-          <h2 id="product-title">
-            <span>رب گوجه‌فرنگی یام‌یام</span>
-            این همه طعم، <em>در یک قوطی.</em>
+        <motion.div className={`${styles.caption} ${styles.spiralCaption}`}
+          style={scrubEnabled ? { opacity: spiralLayer.opacity, visibility: spiralLayer.visibility } : undefined}>
+          <h2 className={styles.spiralTitle}>
+            <span className={styles.mask}>
+              <motion.span style={scrubEnabled ? spiralLine : undefined}>غلظتش را</motion.span>
+            </span>
+            <span className={styles.mask}>
+              <motion.em style={scrubEnabled ? spiralAccent : undefined}>ببینید.</motion.em>
+            </span>
           </h2>
-          <motion.div style={scrubEnabled
-            ? { opacity: detailsOpacity, y: detailsOffset, visibility: detailsVisibility }
-            : undefined}>
+          {scrubEnabled && (
+            <motion.button ref={spiralButtonRef} className={styles.action} type="button" style={continueButton} inert
+              onClick={(event) => advanceStory(1, event.detail === 0 ? productTitleRef.current : null)}>
+              ادامهٔ داستان <ArrowDown size={17} aria-hidden="true" />
+            </motion.button>
+          )}
+        </motion.div>
+
+        <motion.section
+          className={`${styles.caption} ${styles.product}`}
+          aria-labelledby="product-title"
+          style={scrubEnabled ? { opacity: productLabel.opacity, visibility: productLabel.visibility } : undefined}
+        >
+          <motion.p className={styles.productLabel} style={scrubEnabled ? { y: productLabel.y } : undefined}>
+            رب گوجه‌فرنگی یام‌یام
+          </motion.p>
+          <div className={styles.mask}>
+            <motion.h2 className={styles.productTitle} id="product-title" ref={productTitleRef} tabIndex={-1}
+              style={scrubEnabled ? productTitle : undefined}>
+              <span>این همه طعم،</span> <em>در یک قوطی.</em>
+            </motion.h2>
+          </div>
+          <motion.div className={styles.productDetails} style={scrubEnabled ? productDetails : undefined}>
             <p>برای پاستا، خورش و سس‌های خانگی</p>
             <dl className={styles.specification}>
               <dt>وزن خالص</dt>
