@@ -1,3 +1,5 @@
-import {StoryContent,FinalContent} from '@/components/story-content';
-import {ShopSection} from '@/components/shop-section';
-export default function Home(){return <><StoryContent/><ShopSection/><FinalContent/></>}
+import { VideoStory } from "@/components/video-story";
+
+export default function Home() {
+  return <VideoStory />;
+}

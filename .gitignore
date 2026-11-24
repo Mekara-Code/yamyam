@@ -7,3 +7,4 @@ outputs/
 *.tsbuildinfo
 .env*
 *.log
+.vercel/

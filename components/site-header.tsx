@@ -1,9 +1,92 @@
-'use client';
-import {useEffect,useRef,useState} from 'react';
-import {Menu,ShoppingBasket,X,ArrowUpLeft} from 'lucide-react';
-import {useCart} from './cart-provider';
-export function Wordmark(){return <span className="wordmark" dir="ltr">yamyam<span>.</span><svg width="21" height="14" viewBox="0 0 24 16" fill="none" aria-hidden="true"><path d="M12 14C4 13 2 6 2 2c7 0 12 4 10 12Zm0 0C11 5 17 2 22 2c0 7-4 12-10 12Z" fill="currentColor"/></svg></span>}
-export function SiteHeader(){const{quantity,openCart}=useCart();const[menu,setMenu]=useState(false);const toggle=useRef<HTMLButtonElement>(null);
- useEffect(()=>{if(!menu)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenu(false);toggle.current?.focus()}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[menu]);
- return <header className="site-header"><div className="container header-row"><a href="#home" className="brand-link" aria-label="یام‌یام، ابتدای صفحه"><Wordmark/></a><nav id="main-navigation" className={menu?'navigation is-open':'navigation'} aria-label="ناوبری اصلی"><a href="#story" onClick={()=>setMenu(false)}>قصهٔ یام‌یام</a><a href="#shop" onClick={()=>setMenu(false)}>فروشگاه تعاملی<ArrowUpLeft size={14}/></a><a href="#about" onClick={()=>setMenu(false)}>نزدیک‌تر ببین</a><span className="nav-small">یک طعم، کلی قصه.</span></nav><div className="header-actions"><button className="cart-trigger" onClick={openCart} aria-label={`سبد من، ${quantity} قوطی`}><ShoppingBasket size={21}/><span>سبدِ من</span><b>{quantity.toLocaleString('fa-IR')}</b></button><button ref={toggle} className="menu-toggle" aria-controls="main-navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)} aria-label={menu?'بستن منو':'بازکردن منو'}>{menu?<X size={22}/>:<Menu size={22}/>}</button></div></div></header>
+"use client";
+
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { ArrowDownLeft, Mail, Menu, Phone, X } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+
+const phone = "+989196867490";
+const email = "contact@yamyamgroup.com";
+
+function HeaderLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <>
+      <nav className="navigation" aria-label="ناوبری اصلی">
+        <a href="#story" onClick={onNavigate}>داستان یام‌یام</a>
+        <a href="#about" onClick={onNavigate}>دربارهٔ محصول <ArrowDownLeft size={15} aria-hidden="true" /></a>
+      </nav>
+      <address className="header-contact">
+        <a href={`tel:${phone}`} onClick={onNavigate} aria-label={`شماره تماس یام‌یام، ${phone}`}>
+          <Phone size={15} aria-hidden="true" />
+          <bdi dir="ltr">{phone}</bdi>
+        </a>
+        <a href={`mailto:${email}`} onClick={onNavigate} aria-label={`ایمیل یام‌یام، ${email}`}>
+          <Mail size={15} aria-hidden="true" />
+          <bdi dir="ltr">{email}</bdi>
+        </a>
+      </address>
+    </>
+  );
+}
+
+export function SiteHeader() {
+  const menuRef = useRef<HTMLDialogElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const lift = useTransform(scrollY, [0, 220], [0, -7]);
+  const logoScale = useTransform(scrollY, [0, 220], [1, 0.9]);
+
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 680px)");
+    function closeOnDesktop(event: MediaQueryListEvent) {
+      if (!event.matches) menuRef.current?.close();
+    }
+    mobile.addEventListener("change", closeOnDesktop);
+    return () => mobile.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  return (
+    <motion.header className="site-header" style={{ y: reducedMotion ? 0 : lift }}>
+      <div className="container header-row">
+        <motion.a href="#home" className="brand-link" aria-label="یام‌یام، ابتدای صفحه"
+          style={{ scale: reducedMotion ? 1 : logoScale }}>
+          <Image className="brand-logo" src="/images/yamyam-logo.png" width={192} height={192} alt="" loading="eager" />
+        </motion.a>
+        <div className="header-desktop-links">
+          <HeaderLinks />
+        </div>
+        <button
+          type="button"
+          className="header-menu-button"
+          aria-label="باز کردن منو"
+          aria-haspopup="dialog"
+          aria-controls="header-menu"
+          onClick={() => menuRef.current?.showModal()}
+        >
+          <Menu size={27} aria-hidden="true" />
+        </button>
+      </div>
+      <dialog
+        id="header-menu"
+        className="header-drawer"
+        ref={menuRef}
+        aria-label="منوی یام‌یام"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+      >
+        <div className="header-drawer-content">
+          <button
+            type="button"
+            className="header-drawer-close"
+            aria-label="بستن منو"
+            onClick={() => menuRef.current?.close()}
+          >
+            <X size={26} aria-hidden="true" />
+          </button>
+          <HeaderLinks onNavigate={() => menuRef.current?.close()} />
+        </div>
+      </dialog>
+    </motion.header>
+  );
 }

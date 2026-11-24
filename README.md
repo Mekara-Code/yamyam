@@ -1,6 +1,6 @@
 # YAM YAM
 
-A Persian, right-to-left product story and interactive tomato-paste store built with Next.js 16, React, Three.js and Framer Motion. The product uses a real glTF model with photographic label artwork. Vazirmatn is bundled locally.
+A Persian, right-to-left product story built with Next.js 16, React, GSAP and Framer Motion. Vazirmatn is bundled locally.
 
 ## Run locally
 
@@ -18,14 +18,13 @@ npm run typecheck
 npm run build
 ```
 
-The project uses Next.js static export. The production files are generated in `out/` and can be served by a static web host. The interactive scenes and cart run in the browser; a Next.js application server is not needed for the exported site.
+The project uses Next.js static export. The production files are generated in `out/` and can be served by a static web host. The animations run in the browser.
 
 ## Experience
 
-- Scroll through the product story with a Three.js can and Framer Motion transitions.
-- Enter the Three.js store and select a can to send it toward the basket.
-- Open the cart to change quantities, remove items or empty it. The cart holds up to 12 cans and saves its quantity in this browser's local storage.
-- The basket is a local demonstration. This project does not submit orders or process payments.
+- Scroll in either direction to seek through the product video. Framer Motion renders the progress line and the opening and closing copy.
+- Readers who prefer reduced motion can use the video’s native controls.
+- The videos in `public/videos/` use the supplied 30 fps landscape and 24 fps portrait clips, with frequent keyframes for seeking.
 
 ## Product assets
 
@@ -37,7 +36,5 @@ To rebuild the web copies, run `scripts/build-web-assets.py` with Python, Pillow
 
 ## Main files
 
-- `components/story-content.tsx` and `components/product-stage.tsx`: product story and hero scene.
-- `components/store-scene.tsx` and `lib/store-engine.ts`: store controls, shelves, picking and can animation.
-- `components/cart-provider.tsx` and `components/cart-drawer.tsx`: local cart state and drawer.
+- `components/video-story.tsx`: scroll-driven video with responsive sources and product information over the final frames.
 - `app/globals.css`: shared layout and visual styles.

@@ -9,19 +9,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "16.4.3",
+    "framer-motion": "latest",
+    "gsap": "^3.15.1",
+    "lucide-react": "latest",
+    "next": "16.4.6",
     "react": "latest",
     "react-dom": "latest",
-    "three": "latest",
-    "framer-motion": "latest",
-    "lucide-react": "latest",
-    "@fontsource-variable/vazirmatn": "latest"
+    "three": "latest"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
     "@types/node": "^22.19.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/three": "latest"
+    "@types/three": "latest",
+    "typescript": "^5.9.3"
   }
 }
