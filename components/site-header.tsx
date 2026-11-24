@@ -5,8 +5,8 @@ import { ArrowDownLeft, Mail, Menu, Phone, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 
-const phone = "+989196867490";
-const email = "contact@yamyamgroup.com";
+const phone = "+989128452467";
+const email = "commercial@yamyamgroup.com";
 
 function HeaderLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
