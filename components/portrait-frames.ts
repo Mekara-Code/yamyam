@@ -1,3 +1,5 @@
+import { fetchStoryAsset } from "./story-media";
+
 const frameWidth = 360;
 const frameHeight = 640;
 const columns = 4;
@@ -10,10 +12,49 @@ type Sheet = {
   status: "loading" | "ready" | "failed";
 };
 
+function sheetUrl(index: number) {
+  return `/videos/portrait-frames/${index}.webp`;
+}
+
+export async function preparePortraitFrames(
+  signal: AbortSignal,
+  onProgress: (progress: number) => void,
+) {
+  const downloads = new AbortController();
+  const abortDownloads = () => downloads.abort(signal.reason);
+  if (signal.aborted) throw signal.reason;
+  signal.addEventListener("abort", abortDownloads, { once: true });
+
+  const sheets: Blob[] = new Array(sheetCount);
+  let nextIndex = 0;
+  let downloaded = 0;
+
+  async function loadSheets() {
+    while (nextIndex < sheetCount) {
+      const index = nextIndex++;
+      const response = await fetchStoryAsset(sheetUrl(index), downloads.signal);
+      sheets[index] = await response.blob();
+      if (downloads.signal.aborted) return;
+      onProgress(++downloaded / sheetCount);
+    }
+  }
+
+  try {
+    // Warm the compressed sheets while leaving decoding to the frame renderer.
+    await Promise.all(Array.from({ length: 4 }, loadSheets));
+    if (signal.aborted) throw signal.reason;
+    return sheets.map((sheet) => URL.createObjectURL(sheet));
+  } finally {
+    downloads.abort();
+    signal.removeEventListener("abort", abortDownloads);
+  }
+}
+
 export function createPortraitFrames(
   canvas: HTMLCanvasElement,
   onFrame: (progress: number) => void,
   onError: () => void,
+  sources?: readonly string[],
 ) {
   const context = canvas.getContext("2d", { alpha: false });
   if (!context || typeof Image.prototype.decode !== "function") return null;
@@ -51,7 +92,7 @@ export function createPortraitFrames(
     const sheet: Sheet = { image, status: "loading" };
     sheets.set(index, sheet);
     image.fetchPriority = index === activeSheet ? "high" : "low";
-    image.src = `/videos/portrait-frames/${index}.webp`;
+    image.src = sources?.[index] ?? sheetUrl(index);
     void image.decode().then(
       () => {
         if (sheets.get(index) !== sheet) return;

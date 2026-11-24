@@ -1,18 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { ArrowDown, ArrowDownLeft } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { createPortraitFrames } from "./portrait-frames";
+import { StoryLoading } from "./story-loading";
+import { desktopVideo, portraitQuery, portraitVideo, releaseStorySource, useStorySource } from "./use-story-source";
 import styles from "./video-story.module.css";
 
-const portraitQuery = "(max-width: 760px) and (orientation: portrait)";
-const desktopVideo = "/videos/yamyam-scroll-desktop";
-const portraitVideo = "/videos/yamyam-scroll-portrait";
+const playbackTimeout = 12_000;
 const videoEnd = 0.95;
 const spiralCue = [0.367, 0.415, 0.487, 0.54];
 const spiralStop = videoEnd * ((spiralCue[1] + spiralCue[2]) / 2);
@@ -25,9 +25,14 @@ export function VideoStory() {
   const triggerRef = useRef<ScrollTrigger | null>(null);
   const scrollTween = useRef<gsap.core.Tween | null>(null);
   const initialAnchorHandled = useRef(false);
+  const retainedScrollProgress = useRef<number | null>(null);
+  const { source, loadingProgress } = useStorySource();
+  const [firstMediaReady, setFirstMediaReady] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
   const [scrubEnabled, setScrubEnabled] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const finishLoader = useCallback(() => setShowLoader(false), []);
 
   const progress = useMotionValue(0);
   const renderedProgress = useMotionValue(0);
@@ -52,130 +57,121 @@ export function VideoStory() {
   const detailsVisibility = useTransform(() => renderedProgress.get() > 0.838 ? "visible" : "hidden");
 
   useLayoutEffect(() => {
+    const story = sectionRef.current;
     const player = videoRef.current;
-    if (!player) return;
-    const portrait = window.matchMedia(portraitQuery);
-
-    const updatePoster = () => {
-      player.poster = `${portrait.matches ? portraitVideo : desktopVideo}-poster.webp`;
-    };
-
-    const refreshReadiness = () => {
-      const ready = player.readyState >= player.HAVE_CURRENT_DATA && !player.error;
-      setVideoReady(ready);
-      if (ready) setFailed(false);
-    };
-
-    const checkError = () => {
-      if (sectionRef.current?.dataset.renderer !== "frames" &&
-        player.error && player.error.code !== player.error.MEDIA_ERR_ABORTED) setFailed(true);
-    };
-
-    const readinessEvents = ["loadeddata", "canplay", "emptied"];
-
-    const selectSource = () => {
-      const trigger = triggerRef.current;
-      const activeProgress = trigger?.isActive ? trigger.progress : null;
-      scrollTween.current?.kill();
-      updatePoster();
-      setVideoReady(false);
-      setFailed(false);
-      renderedProgress.set(0);
-      player.load();
-
-      if (trigger && activeProgress !== null) {
-        ScrollTrigger.refresh();
-        window.scrollTo({ top: trigger.start + (trigger.end - trigger.start) * activeProgress, behavior: "instant" });
-        ScrollTrigger.update();
-      }
-    };
-
-    updatePoster();
-    refreshReadiness();
-    readinessEvents.forEach((event) => player.addEventListener(event, refreshReadiness));
-    player.addEventListener("error", checkError);
-    portrait.addEventListener("change", selectSource);
-    return () => {
-      readinessEvents.forEach((event) => player.removeEventListener(event, refreshReadiness));
-      player.removeEventListener("error", checkError);
-      portrait.removeEventListener("change", selectSource);
-    };
-  }, [renderedProgress]);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const player = videoRef.current;
-    if (!section || !player || failed) return;
+    if (!story || !player || !source) return;
+    const section = story;
     const video = player;
 
     gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
     ScrollTrigger.config({ ignoreMobileResize: true });
-    const media = gsap.matchMedia();
 
-    media.add({
-      motion: "(prefers-reduced-motion: no-preference)",
-      portrait: portraitQuery,
-      touch: "(pointer: coarse)",
-    }, ({ conditions }) => {
-      if (!conditions?.motion) return;
+    const playhead = { progress: 0 };
+    const canvas = canvasRef.current;
+    const directVideo = source.base + ".mp4";
+    let frames: ReturnType<typeof createPortraitFrames> = null;
+    let frameRequest: number | null = null;
+    let readyTimer: number | undefined;
+    let activeVideo: string | undefined;
+    let scrub: gsap.core.Tween | undefined;
+    let fps = 30;
+    let lastFrame = 0;
 
-      const playhead = { progress: 0 };
-      let frameRequest: number | null = null;
-      let fps = 30;
-      let lastFrame = 0;
-      const canvas = canvasRef.current;
-      let frames = conditions.portrait && canvas
-        ? createPortraitFrames(canvas, (position) => renderedProgress.set(position), useVideoFallback)
-        : null;
+    setVideoReady(false);
+    setFailed(false);
+    video.poster = source.base + "-poster.webp";
+    video.pause();
 
+    function showMedia() {
+      if (readyTimer === undefined) return;
+      window.clearTimeout(readyTimer);
+      readyTimer = undefined;
+      setFirstMediaReady(true);
+    }
+
+    function stopScrubbing() {
+      scrollTween.current?.kill();
+      scrub?.scrollTrigger?.kill();
+      scrub?.kill();
+      triggerRef.current = null;
+      delete section.dataset.scrub;
+      progress.set(0);
+      renderedProgress.set(0);
+      setScrubEnabled(false);
+    }
+
+    function handleVideoFailure() {
+      if (activeVideo !== directVideo) {
+        installVideo(directVideo);
+        return;
+      }
+      activeVideo = undefined;
+      setVideoReady(false);
+      setFailed(true);
+      stopScrubbing();
+      showMedia();
+    }
+
+    function installVideo(url: string) {
+      frames?.dispose();
+      frames = null;
+      delete section.dataset.renderer;
+      window.clearTimeout(readyTimer);
+      activeVideo = url;
+      lastFrame = 0;
+      video.preload = "auto";
+      video.src = url;
+      video.load();
+      readyTimer = window.setTimeout(handleVideoFailure, playbackTimeout);
+    }
+
+    function seekFrame() {
+      frameRequest = null;
+      if (!activeVideo || !lastFrame || video.seeking || video.error || video.readyState < 1) return;
+      const videoProgress = Math.min(1, playhead.progress / videoEnd);
+      const frame = Math.round(videoProgress * lastFrame);
+      // Seek just inside each sample so the last source frame stays selectable.
+      const time = (frame + 0.1) / fps;
+      if (Math.abs(time - video.currentTime) > 0.2 / fps) video.currentTime = time;
+    }
+
+    function queueSeek() {
+      if (activeVideo && triggerRef.current && frameRequest === null) frameRequest = requestAnimationFrame(seekFrame);
+    }
+
+    function updateSourceTiming() {
+      if (!activeVideo) return;
+      fps = video.videoHeight > video.videoWidth ? 24 : 30;
+      lastFrame = Number.isFinite(video.duration) ? Math.max(0, Math.round(video.duration * fps) - 1) : 0;
+      queueSeek();
+    }
+
+    function refreshReadiness() {
+      if (!activeVideo || video.readyState < video.HAVE_CURRENT_DATA || video.error) return;
+      setVideoReady(true);
+      showMedia();
+    }
+
+    function onSeeked() {
+      if (activeVideo && lastFrame) renderedProgress.set(Math.min(1, video.currentTime * fps / lastFrame));
+      queueSeek();
+    }
+
+    function checkError() {
+      if (activeVideo && video.error && video.error.code !== video.error.MEDIA_ERR_ABORTED) handleVideoFailure();
+    }
+
+    video.addEventListener("loadedmetadata", updateSourceTiming);
+    video.addEventListener("loadeddata", refreshReadiness);
+    video.addEventListener("canplay", refreshReadiness);
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("error", checkError);
+
+    if (source.motion) {
       section.dataset.scrub = "true";
       setScrubEnabled(true);
-      video.pause();
-      video.preload = frames ? "none" : "auto";
-      if (frames) section.dataset.renderer = "frames";
-
-      function useVideoFallback() {
-        frames?.dispose();
-        frames = null;
-        delete section?.dataset.renderer;
-        video.preload = "auto";
-        if (video.error) video.load();
-        updateSourceTiming();
-      }
-
-      function seekFrame() {
-        frameRequest = null;
-        if (!lastFrame || video.seeking || video.error || video.readyState < 1) return;
-
-        const videoProgress = Math.min(1, playhead.progress / videoEnd);
-        const frame = Math.round(videoProgress * lastFrame);
-        // Seek just inside each sample so the last source frame stays selectable.
-        const time = (frame + 0.1) / fps;
-        if (Math.abs(time - video.currentTime) > 0.2 / fps) video.currentTime = time;
-      }
-
-      function queueSeek() {
-        if (frameRequest === null) frameRequest = requestAnimationFrame(seekFrame);
-      }
-
-      function updateSourceTiming() {
-        if (frames) return;
-        fps = video.videoHeight > video.videoWidth ? 24 : 30;
-        lastFrame = Number.isFinite(video.duration) ? Math.max(0, Math.round(video.duration * fps) - 1) : 0;
-        queueSeek();
-      }
-
-      function onSeeked() {
-        if (frames) return;
-        if (lastFrame) renderedProgress.set(Math.min(1, video.currentTime * fps / lastFrame));
-        // A busy decoder uses the latest scroll position once the previous seek finishes.
-        queueSeek();
-      }
-
-      video.addEventListener("loadedmetadata", updateSourceTiming);
-      video.addEventListener("seeked", onSeeked);
-
-      const scrub = gsap.to(playhead, {
+      const directScrub = source.portrait || window.matchMedia("(pointer: coarse)").matches;
+      scrub = gsap.to(playhead, {
         progress: 1,
         ease: "none",
         onUpdate: () => {
@@ -187,39 +183,55 @@ export function VideoStory() {
           trigger: section,
           start: "top top",
           end: "bottom bottom",
-          scrub: conditions.portrait || conditions.touch ? true : 0.22,
+          scrub: directScrub ? true : 0.22,
         },
       });
 
       triggerRef.current = scrub.scrollTrigger ?? null;
-      frames?.render(playhead.progress / videoEnd);
-      updateSourceTiming();
-      onSeeked();
-
+      const trigger = triggerRef.current;
       if (!initialAnchorHandled.current && window.location.hash === "#about") {
         document.getElementById("about")?.scrollIntoView({ behavior: "instant" });
-        ScrollTrigger.update();
+      } else if (trigger && retainedScrollProgress.current !== null) {
+        const top = trigger.start + (trigger.end - trigger.start) * retainedScrollProgress.current;
+        window.scrollTo({ top, behavior: "instant" });
       }
       initialAnchorHandled.current = true;
+      ScrollTrigger.update();
+    }
 
-      return () => {
-        scrollTween.current?.kill();
-        video.removeEventListener("loadedmetadata", updateSourceTiming);
-        video.removeEventListener("seeked", onSeeked);
-        if (frameRequest !== null) cancelAnimationFrame(frameRequest);
-        frames?.dispose();
-        video.preload = "metadata";
-        delete section.dataset.renderer;
-        delete section.dataset.scrub;
-        triggerRef.current = null;
-        progress.set(0);
-        renderedProgress.set(0);
-        setScrubEnabled(false);
-      };
-    }, section);
+    if (source.kind === "frames" && canvas) {
+      frames = createPortraitFrames(canvas, (position) => {
+        renderedProgress.set(position);
+        showMedia();
+      }, () => installVideo(directVideo), source.urls);
+    }
 
-    return () => media.revert();
-  }, [failed, progress, renderedProgress]);
+    if (frames) {
+      section.dataset.renderer = "frames";
+      readyTimer = window.setTimeout(() => installVideo(directVideo), playbackTimeout);
+      frames.render(playhead.progress / videoEnd);
+    } else {
+      installVideo(source.kind === "video" ? source.url : directVideo);
+    }
+
+    return () => {
+      retainedScrollProgress.current = triggerRef.current?.progress ?? null;
+      stopScrubbing();
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest);
+      window.clearTimeout(readyTimer);
+      video.removeEventListener("loadedmetadata", updateSourceTiming);
+      video.removeEventListener("loadeddata", refreshReadiness);
+      video.removeEventListener("canplay", refreshReadiness);
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", checkError);
+      frames?.dispose();
+      delete section.dataset.renderer;
+      video.preload = "none";
+      video.removeAttribute("src");
+      video.load();
+      releaseStorySource(source);
+    };
+  }, [source, progress, renderedProgress]);
 
   function advanceStory(target: number) {
     const trigger = triggerRef.current;
@@ -262,7 +274,7 @@ export function VideoStory() {
               ref={videoRef}
               width={1600}
               height={900}
-              preload="metadata"
+              preload="none"
               muted
               playsInline
               controls={!scrubEnabled && !failed}
@@ -321,6 +333,7 @@ export function VideoStory() {
           <motion.span style={{ scaleX: progress }} />
         </div>
       </div>
+      {showLoader && <StoryLoading progress={loadingProgress} ready={firstMediaReady} onComplete={finishLoader} />}
     </section>
   );
 }
